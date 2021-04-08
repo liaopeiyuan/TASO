@@ -149,7 +149,8 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       buildTRTNetworkHelper(network, outputs, *it);
       inputs.push_back(outputs[(SrcEdge) {it->srcIdx, it->srcOp}]);
     } else if (it->srcOp.guid == GUID_WEIGHT) {
-      assert(edge.op.ptr->type == OpType::OP_NOOP);
+      //assert(edge.op.ptr->type == OpType::OP_NOOP);
+      assert(false);
       return;
     }
   }
@@ -308,21 +309,21 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       sprintf(name, "matmul%zd_weights", edge.op.guid);
       ITensor *trt_weight_matrix = network->addInput(name, nvinfer1::DataType::kFLOAT, weight_dims);
       auto trt_mm = network->addMatrixMultiply(*inputs[0], false, *trt_weight_matrix, false);
-      if (matmul->activation != OpType::AC_MODE_NONE) {
-        ActivationType at = matmul->activation == OpType::AC_MODE_RELU ? ActivationType::kRELU :
-          matmul->activation == OpType::AC_MODE_SIGMOID ? ActivationType::kSIGMOID : ActivationType::kTANH;
+      if (matmul->activation != ActiMode::AC_MODE_NONE) {
+        ActivationType at = matmul->activation == ActiMode::AC_MODE_RELU ? ActivationType::kRELU :
+          matmul->activation == ActiMode::AC_MODE_SIGMOID ? ActivationType::kSIGMOID : ActivationType::kTANH;
         outputs[edge] = network->addActivation(*trt_mm->getOutput(0), at)->getOutput(0);
       } else {
         outputs[edge] = trt_mm->getOutput(0);
       }
       break;
     }
-    case OpType::OP_NOOP:
-    {
-      assert(inputs.size() == 1);
-      outputs[edge] = inputs[0];
-      break;
-    }
+    //case OpType::OP_NOOP:
+    //{
+    //  assert(inputs.size() == 1);
+    //  outputs[edge] = inputs[0];
+    //  break;
+    //}
     case OpType::OP_CONCAT:
     {
       assert(inputs.size() > 1);
