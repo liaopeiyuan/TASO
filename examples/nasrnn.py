@@ -32,3 +32,8 @@ for i in range(length):
     state = nas_node(graph, state, xs[i])
 new_graph = taso.optimize(graph, alpha=1.0, budget=100)
 onnx_model = taso.export_onnx(new_graph)
+
+onnx.save(onnx_model, "nasrnn_taso.onnx")
+
+#print(graph.run_time())
+print(new_graph.run_time())

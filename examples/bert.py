@@ -1,8 +1,9 @@
 import taso as ts
+import onnx
 
 seq_length = 64
 hidden_dims = 1024
-batch_size = 16
+batch_size = 1
 
 def attention(graph, input, heads):
     d_model = input.dim(1)
@@ -43,3 +44,10 @@ for i in range(8):
     t = attention(graph, t, 16)
 
 new_graph = ts.optimize(graph, alpha=1.0, budget=100)
+
+onnx_model = ts.export_onnx(new_graph)
+
+onnx.save(onnx_model, "bert_taso.onnx")
+
+#print(graph.run_time())
+print(new_graph.run_time())
