@@ -74,14 +74,16 @@ def reduction_cell(graph, prev, cur, out_channels):
     return graph.concat(1, outputs)
 
 graph = ts.new_graph()
-input = graph.new_input(dims=(1,3,224,224))
-weight = graph.new_weight(dims=(64,3,7,7))
-input = graph.conv2d(input=input, weight=weight, strides=(2,2),
-                 padding="SAME", activation="RELU")
-input = graph.maxpool2d(input=input, kernels=(3,3), strides=(2,2), padding="SAME")
+input = graph.new_input(dims=(1,64,56,56))
+#weight = graph.new_weight(dims=(64,3,7,7))
+#input = graph.conv2d(input=input, weight=weight, strides=(2,2),
+#                 padding="SAME", activation="RELU")
+#input = graph.maxpool2d(input=input, kernels=(3,3), strides=(2,2), padding="SAME")
 
-out_channels = 128
+out_channels = 64
 for i in range(3):
+    if i > 0:
+        input = reduction_cell(graph, prev, cur, out_channels)
     prev = input
     cur = input
     for j in range(5):
@@ -89,8 +91,11 @@ for i in range(3):
         prev = cur
         cur = t
     out_channels *= 2
-    input = reduction_cell(graph, prev, cur, out_channels)
+    #input = reduction_cell(graph, prev, cur, out_channels)
 new_graph = ts.optimize(graph, alpha=1.0, budget=100)
 onnx_model = ts.export_onnx(new_graph)
 onnx.checker.check_model(onnx_model)
 onnx.save(onnx_model, "nasneta_taso.onnx")
+
+#print(graph.run_time())
+print(new_graph.run_time())
