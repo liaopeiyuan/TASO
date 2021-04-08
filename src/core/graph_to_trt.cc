@@ -6,6 +6,8 @@
 
 #define TIMING_ITERATIONS 10
 
+using namespace taso;
+
 class SplitPlugin : public IPlugin {
 public:
   SplitPlugin(int nOuts, int *channels_, int axis): nOuts(nOuts), axis(axis) {
@@ -147,7 +149,7 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       buildTRTNetworkHelper(network, outputs, *it);
       inputs.push_back(outputs[(SrcEdge) {it->srcIdx, it->srcOp}]);
     } else if (it->srcOp.guid == GUID_WEIGHT) {
-      assert(edge.op.ptr->type == OpBase::OP_NOOP);
+      assert(edge.op.ptr->type == OpType::OP_NOOP);
       return;
     }
   }
@@ -160,13 +162,13 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
     }
     char name[255];
     sprintf(name, "in%zd", edge.op.guid);
-    ITensor *trt_input = network->addInput(name, DataType::kFLOAT, d);
+    ITensor *trt_input = network->addInput(name, nvinfer1::DataType::kFLOAT, d);
     outputs[edge] = trt_input;
     return;
   }
 
   switch (edge.op.ptr->type) {
-    case OpBase::OP_CONV2D:
+    case OpType::OP_CONV2D:
     {
       assert(inputs.size() == 2);
       assert(inputs[0]->getDimensions().nbDims == 4);
@@ -181,8 +183,8 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       conv->get_padding(&padH, &padW);
       int numWeights = kernelH * kernelW * outputC * conv->inputs[1].dim[1];
       auto trt_conv = network->addConvolution(*inputs[0], outputC, DimsHW{kernelH, kernelW},
-        (Weights) {DataType::kFLOAT, malloc(sizeof(uint32_t) * numWeights), numWeights}, // TODO memory leak
-        (Weights) {DataType::kFLOAT, nullptr, 0});
+        (Weights) {nvinfer1::DataType::kFLOAT, malloc(sizeof(uint32_t) * numWeights), numWeights}, // TODO memory leak
+        (Weights) {nvinfer1::DataType::kFLOAT, nullptr, 0});
       char name[255];
       sprintf(name, "conv%zd:%dx%d/%dx%d/%d/%d",
         edge.op.guid, kernelH, kernelW, conv->strideH, conv->strideW, inputC, outputC);
@@ -193,50 +195,50 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       outputs[edge] = trt_conv->getOutput(0);
       break;
     }
-    case OpBase::OP_POOL2D_MAX:
-    case OpBase::OP_POOL2D_AVG:
+    case OpType::OP_POOL2D_MAX:
+    case OpType::OP_POOL2D_AVG:
     {
       assert(inputs.size() == 2);
       Pool2D* pool = (Pool2D*) edge.op.ptr;
       int padH, padW;
       pool->get_padding(&padH, &padW);
       auto trt_pool = network->addPooling(*inputs[0],
-        pool->type == OpBase::OP_POOL2D_MAX ? PoolingType::kMAX : PoolingType::kAVERAGE,
+        pool->type == OpType::OP_POOL2D_MAX ? PoolingType::kMAX : PoolingType::kAVERAGE,
         DimsHW{pool->kernelH, pool->kernelW});
       trt_pool->setStride(DimsHW{pool->strideH, pool->strideW});
       trt_pool->setPadding(DimsHW{padH, padW});
       outputs[edge] = trt_pool->getOutput(0);
       break;
     }
-    case OpBase::OP_RELU:
+    case OpType::OP_RELU:
     {
       assert(inputs.size() == 1);
       outputs[edge] = network->addActivation(*inputs[0], ActivationType::kRELU)->getOutput(0);
       break;
     }
-    case OpBase::OP_TANH:
+    case OpType::OP_TANH:
     {
       assert(inputs.size() == 1);
       outputs[edge] = network->addActivation(*inputs[0], ActivationType::kTANH)->getOutput(0);
       break;
     }
-    case OpBase::OP_SIGMOID:
+    case OpType::OP_SIGMOID:
     {
       assert(inputs.size() == 1);
       outputs[edge] = network->addActivation(*inputs[0], ActivationType::kSIGMOID)->getOutput(0);
       break;
     }
-    case OpBase::OP_BATCHNORM:
+    case OpType::OP_BATCHNORM:
     {
       assert(inputs.size() == 1);
       float scale_param = 5.0f;
       float shift_param = 1.0f;
       outputs[edge] = network->addScale(*inputs[0], ScaleMode::kUNIFORM,
-        (Weights) {DataType::kFLOAT, &shift_param, 1}, (Weights) {DataType::kFLOAT, &scale_param, 1},
-        (Weights) {DataType::kFLOAT, nullptr, 0})->getOutput(0);
+        (Weights) {nvinfer1::DataType::kFLOAT, &shift_param, 1}, (Weights) {nvinfer1::DataType::kFLOAT, &scale_param, 1},
+        (Weights) {nvinfer1::DataType::kFLOAT, nullptr, 0})->getOutput(0);
       break;
     }
-    case OpBase::OP_SPLIT:
+    case OpType::OP_SPLIT:
     {
       assert(inputs.size() == 1);
       Split *split = (Split *) edge.op.ptr;
@@ -272,7 +274,7 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       }
       break;
     }
-    case OpBase::OP_RESHAPE:
+    case OpType::OP_RESHAPE:
     {
       assert(inputs.size() == 1);
       auto trt_reshape = network->addShuffle(*inputs[0]);
@@ -285,15 +287,15 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       outputs[edge] = trt_reshape->getOutput(0);
       break;
     }
-    case OpBase::OP_EW_ADD:
-    case OpBase::OP_EW_MUL:
+    case OpType::OP_EW_ADD:
+    case OpType::OP_EW_MUL:
     {
       assert(inputs.size() == 2);
       outputs[edge] = network->addElementWise(*inputs[0], *inputs[1],
-        edge.op.ptr->type == OpBase::OP_EW_ADD ? ElementWiseOperation::kSUM : ElementWiseOperation::kPROD)->getOutput(0);
+        edge.op.ptr->type == OpType::OP_EW_ADD ? ElementWiseOperation::kSUM : ElementWiseOperation::kPROD)->getOutput(0);
       break;
     }
-    case OpBase::OP_MATMUL:
+    case OpType::OP_MATMUL:
     {
       assert(inputs.size() == 2);
       Matmul *matmul = (Matmul *) edge.op.ptr;
@@ -304,24 +306,24 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       }
       char name[255];
       sprintf(name, "matmul%zd_weights", edge.op.guid);
-      ITensor *trt_weight_matrix = network->addInput(name, DataType::kFLOAT, weight_dims);
+      ITensor *trt_weight_matrix = network->addInput(name, nvinfer1::DataType::kFLOAT, weight_dims);
       auto trt_mm = network->addMatrixMultiply(*inputs[0], false, *trt_weight_matrix, false);
-      if (matmul->activation != OpBase::AC_MODE_NONE) {
-        ActivationType at = matmul->activation == OpBase::AC_MODE_RELU ? ActivationType::kRELU :
-          matmul->activation == OpBase::AC_MODE_SIGMOID ? ActivationType::kSIGMOID : ActivationType::kTANH;
+      if (matmul->activation != OpType::AC_MODE_NONE) {
+        ActivationType at = matmul->activation == OpType::AC_MODE_RELU ? ActivationType::kRELU :
+          matmul->activation == OpType::AC_MODE_SIGMOID ? ActivationType::kSIGMOID : ActivationType::kTANH;
         outputs[edge] = network->addActivation(*trt_mm->getOutput(0), at)->getOutput(0);
       } else {
         outputs[edge] = trt_mm->getOutput(0);
       }
       break;
     }
-    case OpBase::OP_NOOP:
+    case OpType::OP_NOOP:
     {
       assert(inputs.size() == 1);
       outputs[edge] = inputs[0];
       break;
     }
-    case OpBase::OP_CONCAT:
+    case OpType::OP_CONCAT:
     {
       assert(inputs.size() > 1);
       Concat *concat = (Concat *) edge.op.ptr;
