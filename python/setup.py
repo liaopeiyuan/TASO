@@ -37,8 +37,8 @@ def config_cython():
             ret.append(Extension(
                 "taso.%s" % fn[:-4],
                 ["%s/%s" % (path, fn)],
-                include_dirs=["../include", "/usr/local/cuda/include"],
-                
+                include_dirs=["../include", "/usr/local/cuda/include", "/usr/lib/x86_64-linux-gnu/"],
+                library_dirs=["../build", "/usr/lib/x86_64-linux-gnu/"], 
                 libraries=["taso_runtime"],
                 extra_compile_args=["-DUSE_CUDNN", "-std=c++11"],
                 extra_link_args=[],

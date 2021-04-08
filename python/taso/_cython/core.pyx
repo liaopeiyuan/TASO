@@ -543,6 +543,10 @@ cdef class PyGraph:
         graph = ctypes.cast(<unsigned long long>new_graph, ctypes.c_void_p)
         return PyGraph(graph)
 
+    def runGraphTRT(self):
+        self.p_graph.runGraphTRT(self.p_graph)
+        return
+
     def get_operator_list(self):
         cdef Op ops[4192]
         cdef int numOps = self.p_graph.get_operator_list(ops, 4192)

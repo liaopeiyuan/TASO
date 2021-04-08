@@ -150,7 +150,7 @@ void Graph::buildTRTNetworkHelper(INetworkDefinition *network, std::map<SrcEdge,
       inputs.push_back(outputs[(SrcEdge) {it->srcIdx, it->srcOp}]);
     } else if (it->srcOp.guid == GUID_WEIGHT) {
       //assert(edge.op.ptr->type == OpType::OP_NOOP);
-      assert(false);
+      //assert(false);
       return;
     }
   }
@@ -365,14 +365,16 @@ void Graph::buildTRTNetwork(INetworkDefinition *network) {
   }
 }
 
-void runGraphTRT(Graph *graph) {
+void Graph::runGraphTRT(Graph *graph) {
+  cudaSetDevice(1);
+  
   IBuilder* builder = createInferBuilder(gLogger);
   INetworkDefinition* network = builder->createNetwork();
   graph->buildTRTNetwork(network);
   IRuntime* runtime = createInferRuntime(gLogger);
 
   builder->setMaxBatchSize(1);
-  builder->setMaxWorkspaceSize(1 << 30);
+  builder->setMaxWorkspaceSize(1 << 20);
 
   ICudaEngine* engine = builder->buildCudaEngine(*network);
   network->destroy();

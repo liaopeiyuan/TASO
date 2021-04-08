@@ -102,6 +102,7 @@ int main(int argc, char **argv) {
     default:
       assert(false);
   }
+  graph->runGraphTRT(graph);
   if (!exportFileName.empty()) graph->export_to_file(exportFileName);
   return 0;
 }

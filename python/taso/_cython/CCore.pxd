@@ -273,3 +273,4 @@ cdef extern from "taso/ops.h" namespace "taso":
         void print_measurements()
         float total_cost()
         float run()
+        void runGraphTRT(Graph* graph)

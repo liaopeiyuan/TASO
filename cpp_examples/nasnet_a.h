@@ -33,7 +33,7 @@ TensorHandle fit(Graph* graph, const TensorHandle current, const TensorHandle in
 
 TensorHandle separable_conv(Graph* graph, const TensorHandle input, int outChannels,
     int kernelH, int kernelW, int strideH, int strideW,
-    PaddingMode padding, ActiMode activation = AC_MODE_NONE) {
+    taso::PaddingMode padding, ActiMode activation = AC_MODE_NONE) {
   assert(input->dim[1] % outChannels == 0);
   auto w1 = new_random_weight(graph, { outChannels, input->dim[1] / outChannels, kernelH, kernelW });
   auto t = graph->conv2d(input, w1, strideH, strideW, padding);
