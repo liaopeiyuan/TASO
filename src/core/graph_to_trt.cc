@@ -1,8 +1,8 @@
 #ifdef TRT
 #include <algorithm>
 #include <chrono>
-#include "xflow/ops.h"
-#include "xflow/cuda_helper.h"
+#include "taso/ops.h"
+#include "taso/cuda_helper.h"
 
 #define TIMING_ITERATIONS 10
 

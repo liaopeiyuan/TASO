@@ -21,6 +21,16 @@ set(TASO_LIBS "")
 set(TASO_LINK_LIBS ${CMAKE_DL_LIBS})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(TRT "TensorRT" ON)
+
+if(TRT)
+    add_definitions(-DTRT)
+    set(TRT ON)
+    message("Using TensorRT")
+else()
+    message("Not using TensorRT")
+endif()
+
 #Generate protobuf files
 find_package(Protobuf REQUIRED)
 message(STATUS "PROTOBUF=" ${PROTOBUF_LIBRARY})

@@ -38,6 +38,7 @@ def config_cython():
                 "taso.%s" % fn[:-4],
                 ["%s/%s" % (path, fn)],
                 include_dirs=["../include", "/usr/local/cuda/include"],
+                
                 libraries=["taso_runtime"],
                 extra_compile_args=["-DUSE_CUDNN", "-std=c++11"],
                 extra_link_args=[],
